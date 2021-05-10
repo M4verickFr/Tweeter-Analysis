@@ -1,0 +1,9 @@
+{%extends "layout.html"%}
+{% block content %}
+<div class="home">
+     <h1>Twitter project</h1>
+     <p>The database contains {{ tweetNumber }} tweets with including {{ coordinatesNumber }} coordinates</p>
+     <button type="button" onclick="window.location.href='{{ url_for('loading_tweets') }}';">Load new tweets</button>
+     <button type="button" onclick="window.location.href='{{ url_for('delete_all_tweets') }}';">Delete all tweets</button>
+<div>
+{%endblock%}
