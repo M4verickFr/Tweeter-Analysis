@@ -3,11 +3,12 @@ DROP TABLE IF EXISTS word;
 DROP TABLE IF EXISTS city;
 
 CREATE TABLE IF NOT EXISTS city (
-  osm_id bigint(100) NOT NULL,
+  place_id varchar(255) NOT NULL,
   display_name varchar(255) NOT NULL,
+  polygon varchar(255) NOT NULL,
   lat varchar(20) NOT NULL,
   lon varchar(20) NOT NULL,
-  PRIMARY KEY (osm_id)
+  PRIMARY KEY (place_id)
 );
 
 CREATE TABLE IF NOT EXISTS tweet (
@@ -19,15 +20,15 @@ CREATE TABLE IF NOT EXISTS tweet (
   retweet_count int(10) NOT NULL,
   latitude varchar(20),
   longitude varchar(20),
-  id_city bigint(100) NULL,
+  id_city varchar(255) NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY (id_city) REFERENCES city(osm_id)
+  FOREIGN KEY (id_city) REFERENCES city(place_id)
 );
 
 CREATE TABLE IF NOT EXISTS word (
   id int(10) NOT NULL AUTO_INCREMENT,
-  word varchar(19) NOT NULL,
-  id_city bigint(100) NOT NULL,
+  word varchar(255) NOT NULL,
+  id_city varchar(255) NOT NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY (id_city) REFERENCES city(osm_id)
+  FOREIGN KEY (id_city) REFERENCES city(place_id)
 );

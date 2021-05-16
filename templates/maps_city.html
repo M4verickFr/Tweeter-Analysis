@@ -2,13 +2,12 @@
 {% block head %}
 <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
 <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0-0/axios.min.js"></script>
-<script src="{{url_for('static',filename='maps_streaming.js')}}"></script>
+<script>var data = {{ data|safe }} </script>
+<script src="{{url_for('static',filename='maps_city.js')}}"></script>
 {%endblock%}
 
 {% block content %}
 <div class="maps">
-     <button id="reload-btn">Reload</button>
      <div id="map" style="height: 90vh;"></div>
 <div>
 {%endblock%}

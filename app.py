@@ -1,11 +1,11 @@
 import json
 import tweepy
-import mysql.connector
 from flask import Flask, render_template, redirect, url_for
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
 
+import streaming
 from database import database
 from keys import *
 
@@ -32,36 +32,7 @@ CORS(app)
 @app.route('/')
 def home():
     tweetNumber = bdd.request_fetchone("SELECT COUNT(*) FROM tweet")
-    coordinatesNumber = bdd.request_fetchone("SELECT COUNT(*) FROM tweet WHERE latitude != ''")
-    
-    return render_template("home.html", tweetNumber=tweetNumber, coordinatesNumber=coordinatesNumber)
-
-
-@app.route('/loading_tweets')
-def loading_tweets():
-    key_words = ["ia", "adwords", "RGPD", "CNIL", "Cookie"]
-    geocodes = ["45.899247,6.129384,50km", "48.856614,2.352222,50km", "45.764043,4.835659,50km"]
-
-    for key_word in key_words:
-        for geocode in geocodes:  
-            fetched_tweets = api.search(q=key_word,count=100, tweet_mode="extended", lang="fr", geocode=geocode)
-            
-            print(key_word + " - " + str(len(fetched_tweets)))
-            
-            for tweet in fetched_tweets:
-                try:
-                    if tweet.geo == None:
-                        sql = "INSERT INTO `tweet`(`id_tweet`, `created_at`, `full_text`, `lang`, `retweet_count`) VALUES (%s,%s,%s,%s,%s)"
-                        bdd.insert(sql, (tweet.id_str, tweet.created_at, tweet.full_text, tweet.lang, tweet.retweet_count))
-                    else:
-                        sql = "INSERT INTO `tweet`(`id_tweet`, `created_at`, `full_text`, `lang`, `retweet_count`, `latitude`, `longitude`) VALUES (%s,%s,%s,%s,%s,%s,%s)"
-                        bdd.insert(sql, (tweet.id_str, tweet.created_at, tweet.full_text, tweet.lang, tweet.retweet_count, tweet.geo["coordinates"][0], tweet.geo["coordinates"][1]))
-                except:
-                    print("error")
-                    print(tweet._json)
-
-    print("Loading tweets...")
-    return redirect(url_for('home'))
+    return render_template("home.html", tweetNumber=tweetNumber)
 
 @app.route('/delete_all_tweets')
 def delete_all_tweets():
@@ -71,22 +42,25 @@ def delete_all_tweets():
 
 @app.route('/maps/')
 def maps():
-    tweet_with_coordinates = bdd.request_fetchall("SELECT id_tweet, latitude, longitude FROM tweet WHERE latitude != ''")
-    return render_template("maps.html", tweet_with_coordinates=json.dumps(tweet_with_coordinates))
+    tweets = json.dumps(bdd.request_fetchall("SELECT id_tweet, latitude, longitude, full_text FROM tweet"))
+    return render_template("maps.html", tweets=tweets)
 
-@app.route('/maps_center/')
-def maps_center():
-    tweet_with_coordinates = bdd.request_fetchall("SELECT id_tweet, latitude, longitude FROM tweet WHERE latitude != ''")
-    return render_template("maps_center.html", tweet_with_coordinates=json.dumps(tweet_with_coordinates))
-
-@app.route('/streaming_tweets/')
-@limiter.exempt
-def streaming_tweets():
-    return "@TODO"
-
-@app.route('/maps_streaming/')
-def maps_streaming():
-    return render_template("maps_streaming.html")
+@app.route('/maps_city/')
+def maps_city():
+    data = {}
+    cities = bdd.request_fetchall("SELECT place_id, lat, lon, display_name, polygon FROM city")
+    
+    for city in cities:
+        data[city[0]] = {
+            "place_id": city[0],
+            "display_name": city[3],
+            "lat": city[1],
+            "lon": city[2],
+            "polygon": city[4],
+            "tweets": bdd.request_fetchall(f"SELECT id_tweet FROM tweet WHERE id_city='{city[0]}'")
+        }
+    
+    return render_template("maps_city.html", data=json.dumps(data))
 
 if __name__=="__main__":
     app.run(debug=True)
