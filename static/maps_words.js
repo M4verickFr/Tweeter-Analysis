@@ -4,7 +4,7 @@ $(function() {
 
     for(city_id in data) {
         city = data[city_id]
-        text = "<center>" + city.display_name + "<br><strong>"
+        text = "<center>" + city.tweets.length + " tweets à " + city.display_name + "<br><strong>"
 
         city.words.forEach(word => {
             text += `${word[0]} - `

@@ -74,6 +74,7 @@ def maps_words():
             "lat": city[1],
             "lon": city[2],
             "polygon": city[4],
+            "tweets": bdd.request_fetchall(f"SELECT id_tweet FROM tweet WHERE id_city='{city[0]}'"),
             "words": bdd.request_fetchall(f"SELECT word, count(*) as 'count'  FROM `word` WHERE id_city='{city[0]}' GROUP BY word ORDER BY count DESC LIMIT 10")
         }
     
