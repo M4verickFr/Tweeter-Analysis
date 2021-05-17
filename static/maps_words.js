@@ -4,13 +4,14 @@ $(function() {
 
     for(city_id in data) {
         city = data[city_id]
-        text = "<center>" + city.tweets.length + " tweets à " + city.display_name + "<br>"
+        text = "<center>" + city.display_name + "<br><strong>"
 
-        city.tweets.forEach(tweet => {
-            text += `- <a target='_blank' href=https://twitter.com/user/status/${tweet[0]}>Lien</a><br>`
+        city.words.forEach(word => {
+            text += `${word[0]} - `
         })
 
-        text += "</center>"
+        text = text.slice(0, -3);
+        text += "</strong></center>"
 
         L.marker([city.lat, city.lon]).addTo(map)
             .bindPopup(text);

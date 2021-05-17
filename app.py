@@ -62,5 +62,22 @@ def maps_city():
     
     return render_template("maps_city.html", data=json.dumps(data))
 
+@app.route('/maps_words/')
+def maps_words():
+    data = {}
+    cities = bdd.request_fetchall("SELECT place_id, lat, lon, display_name, polygon FROM city")
+    
+    for city in cities:
+        data[city[0]] = {
+            "place_id": city[0],
+            "display_name": city[3],
+            "lat": city[1],
+            "lon": city[2],
+            "polygon": city[4],
+            "words": bdd.request_fetchall(f"SELECT word, count(*) as 'count'  FROM `word` WHERE id_city='{city[0]}' GROUP BY word ORDER BY count DESC LIMIT 10")
+        }
+    
+    return render_template("maps_words.html", data=json.dumps(data))
+
 if __name__=="__main__":
     app.run(debug=True)
