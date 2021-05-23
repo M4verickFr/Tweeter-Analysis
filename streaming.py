@@ -1,93 +1,79 @@
+# Externe import
 import json
-from geopy.geocoders import Nominatim, Photon
+from tokenization import tokenize
 from tweepy import OAuthHandler, Stream, StreamListener, API
 
-import enchant
-from nltk import RegexpTokenizer
-from nltk.corpus import stopwords
-
+# Interne import
+import credentials
 from database import database
-from keys import *
+from models.City import City
+from models.Tweet import Tweet
+
+class TwitterClient():
+    def __init__(self, credentials, listener):
+        self.auth = OAuthHandler(credentials.CONSUMER_KEY, credentials.CONSUMER_SECRET)
+        self.auth.set_access_token(credentials.ACCESS_TOKEN, credentials.ACCESS_TOKEN_SECRET)
+        
+        self.api = API(self.auth, wait_on_rate_limit=True)
+        self.listener = listener
+        
+    def get_api(self):
+        return self.api
+        
+    def stream(self, locations=None, languages=None, track=None):
+        stream = Stream(self.auth, self.listener, tweet_mode='extended')
+        stream.filter(locations=location,languages=languages,track=track)
 
 class StdOutListener(StreamListener):
-    def on_data(self, raw_data):
-        self.process_data(raw_data)
+    """Listener to manipulate tweet and insert it in database 
 
-    def process_data(self, raw_data):
+    Args:
+        StreamListener (Listener): StdOutListener extends default StreamListener
+    """
+    
+    def on_data(self, raw_data):
+        """Method executed when a tweet listens
+
+        Args:
+            raw_data (str): tweet informations
+        """
         try: 
             tweet = json.loads(raw_data)
 
-            if tweet['geo'] is not None:
-                places = api.reverse_geocode(tweet["geo"]["coordinates"][0],tweet["geo"]["coordinates"][1], max_result=1, granularity="city")
+            if tweet['geo']: # If the tweet has geographical information
+                
+                # Find the nearest city
+                lat, lon = tweet["geo"]["coordinates"]
+                places = tw_client.get_api().reverse_geocode(lat, lon, max_result=1, granularity="city")
                 
                 if (len(places) == 0):
                     print("error: locations not find")
                     return
                 
-                place = places[0]
-
-                if bdd.request_fetchone(f"SELECT COUNT(*) FROM city WHERE place_id='{place.id}'") == 0:
-                    bdd.insert(sql_insert_city, (
-                        place.id,
-                        place.full_name, 
-                        str(place.bounding_box.coordinates),
-                        place.centroid[1],
-                        place.centroid[0]
-                    ))
+                # Insert city in the database if it is not already inserted
+                if not City.exist(bdd, places[0].id):
+                    City.insert(bdd, places[0])
                     print("city inserted")
                 
-                if ("extended_tweet" in tweet):
-                    text = tweet["extended_tweet"]["full_text"]
-                else:
-                    text = tweet["text"]
-                
-                bdd.insert(sql_insert_tweet, (
-                    tweet["id_str"],
-                    tweet["created_at"], 
-                    text, 
-                    tweet["lang"], 
-                    tweet["retweet_count"],
-                    tweet["geo"]["coordinates"][0],
-                    tweet["geo"]["coordinates"][1],
-                    place.id
-                ))
+                # Insert tweet in the database
+                Tweet.insert(bdd, tweet, places[0].id)
                 print("tweet inserted")
                 
-                words = toknizer.tokenize(text)
-                words = list(filter(lambda word: len(word) > 2 and "@" not in word and word[:5] != "https" and word not in stopwords.words('french') and dictonnary.check(word), words))
-                
-                for word in words:
-                    bdd.insert(sql_insert_word, (
-                        word,
-                        place.id
-                    ))
-                print("[",*words, "] inserted")
+                # Tokenize tweet
+                tokenize(bdd, tweet, places[0].id)
         except:
             print("error: unknown")
-
-    def on_error(self, status):
-        return False
+        
 
 if __name__ == '__main__':
-    sql_insert_city = "INSERT INTO `city`(`place_id`, `display_name`, `polygon`, `lat`, `lon`) VALUES (%s,%s,%s,%s,%s)"
-    sql_insert_tweet = "INSERT INTO `tweet`(`id_tweet`, `created_at`, `full_text`, `lang`, `retweet_count`, `latitude`, `longitude`, `id_city`) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"      
-    sql_insert_word = "INSERT INTO `word`(`word`, `id_city`) VALUES (%s,%s)"
-    
+    # Setup mysql.connector to authenticate to database
     bdd = database("localhost","root","","twitter")
     bdd.connect()
     
-    listener = StdOutListener()
-    auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    api = API(auth, wait_on_rate_limit=True)
-
+    # Define variables to filter the stream
     location = [-5.225, 41.333, 9.55, 51.2]
-    track = ['France','Polytech','Ocean','Ville','Ecole','Ingenieur','Annecy','Voyage','openstreetmap'
-             'Grenoble','Paris','Lyon','ia','adwords','RGPD','CNIL','Cookie','Instagram','GoogleMaps']
     languages = ['fr']
-    dictonnary = enchant.Dict("fr_FR")
     
-    toknizer = RegexpTokenizer(r'''\w'|\w+|[^\w\s]''')
-
-    stream = Stream(auth, listener, tweet_mode='extended')
-    stream.filter(locations=location,languages=languages,track=track)
+    # Define twitter client, and call stream method to start streaming
+    tw_client = TwitterClient(credentials, StdOutListener())
+    tw_client.stream(locations=location,languages=languages)

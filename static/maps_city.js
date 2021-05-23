@@ -6,8 +6,10 @@ $(function() {
         city = data[city_id]
         text = "<center>" + city.tweets.length + " tweets à " + city.display_name + "<br>"
 
+        i = 0
         city.tweets.forEach(tweet => {
-            text += `- <a target='_blank' href=https://twitter.com/user/status/${tweet[0]}>Lien</a><br>`
+            text += ` <a target='_blank' href=https://twitter.com/user/status/${tweet[0]}>Lien</a> `
+            if (++i%4==0) text += "<br>"
         })
 
         text += "</center>"

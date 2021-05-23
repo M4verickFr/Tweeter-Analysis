@@ -3,8 +3,8 @@ $(function() {
     map.setView(["46", "2"], 6);
 
     tweets.forEach(tweet => {
-        L.marker([tweet[1], tweet[2]]).addTo(map)
-            .bindPopup(`<strong>${tweet[3]} <a target='_blank' href=https://twitter.com/user/status/${tweet[0]}>Lien</a></strong>`);
+        L.marker([tweet[6], tweet[7]]).addTo(map)
+            .bindPopup(`<strong>${tweet[3]} <a target='_blank' href=https://twitter.com/user/status/${tweet[1]}>Lien</a></strong>`);
     });
 
     var layer = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
